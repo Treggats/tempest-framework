@@ -89,21 +89,30 @@ final class AlterTableStatement implements QueryStatement, HasTrailingStatements
 
     public function compile(DatabaseDialect $dialect): string
     {
-        if ($this->statements !== []) {
-            $alterTable = sprintf(
-                'ALTER TABLE %s %s;',
-                new TableDefinition($this->tableName),
-                arr($this->statements)
-                    ->map(fn (QueryStatement $queryStatement) => str($queryStatement->compile($dialect))->trim()->replace('  ', ' '))
-                    ->filter(fn (ImmutableString $line) => $line->isNotEmpty())
-                    ->implode(', ' . PHP_EOL . '    ')
-                    ->wrap(before: PHP_EOL . '    ', after: PHP_EOL)
-                    ->toString(),
-            );
-        } else {
-            $alterTable = '';
+        if ($this->statements === []) {
+            return '';
         }
 
-        return $alterTable;
+        $compiledStatements = arr($this->statements)
+            ->map(fn (QueryStatement $queryStatement) => str($queryStatement->compile($dialect))->trim()->replace('  ', ' '))
+            ->filter(fn (ImmutableString $line) => $line->isNotEmpty());
+
+        if ($dialect === DatabaseDialect::SQLITE) {
+            return $compiledStatements
+                ->map(fn (ImmutableString $statement) => sprintf(
+                    'ALTER TABLE %s %s;',
+                    new TableDefinition($this->tableName),
+                    $statement->toString()
+                ))->implode(PHP_EOL)->toString();
+        }
+
+        return sprintf(
+            'ALTER TABLE %s %s;',
+            new TableDefinition($this->tableName),
+            $compiledStatements
+                ->implode(', ' . PHP_EOL . '    ')
+                ->wrap(before: PHP_EOL . '    ', after: PHP_EOL)
+                ->toString(),
+        );
     }
 }

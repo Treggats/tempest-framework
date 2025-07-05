@@ -43,6 +43,7 @@ final class AlterTableStatementTest extends FrameworkIntegrationTestCase
             User::create(
                 name: 'Test',
                 email: 'test@example.com',
+                password: 'password',
             );
         } catch (QueryWasInvalid $queryWasInvalid) {
             $message = match ($this->container->get(DatabaseConfig::class)?->dialect) {
@@ -80,7 +81,8 @@ final class AlterTableStatementTest extends FrameworkIntegrationTestCase
             public function up(): QueryStatement
             {
                 return AlterTableStatement::forModel(User::class)
-                    ->add(new VarcharStatement('email'));
+                    ->add(new VarcharStatement('email'))
+                    ->add(new VarcharStatement('password'));
             }
 
             public function down(): ?QueryStatement
